@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+  <meta name="theme-color" content="#1c6dd0" />
+  <title>Поездки</title>
+
+  <link rel="manifest" href="manifest.webmanifest" />
+  <link rel="apple-touch-icon" href="icon.svg" />
+
+  <!-- Leaflet (карта OpenStreetMap) -->
+  <link rel="stylesheet"
+        href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+        integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY="
+        crossorigin="" />
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
+          integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo="
+          crossorigin=""></script>
+
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <div id="map"></div>
+
+  <!-- Верхняя плашка статуса -->
+  <div id="status" class="status">Определяю местоположение…</div>
+
+  <!-- Нижняя панель управления -->
+  <div class="panel">
+    <div class="coords" id="coords">—</div>
+    <button id="tripBtn" class="trip-btn start" disabled>Начать поездку</button>
+    <div class="panel-links">
+      <button id="historyBtn" class="link-btn" type="button">История поездок</button>
+      <button id="cancelBtn" class="link-btn danger hidden" type="button">Отменить поездку</button>
+    </div>
+  </div>
+
+  <!-- Диалог перед началом поездки -->
+  <div id="tripDialog" class="dialog-overlay hidden">
+    <div class="dialog">
+      <div class="dialog-title">Новая поездка</div>
+      <label class="field">Номер наряда *
+        <input id="orderNumber" type="number" inputmode="numeric" min="0" placeholder="например, 1024" />
+      </label>
+      <div id="orderError" class="field-error hidden">Введите номер наряда</div>
+      <label class="field">Комментарий
+        <textarea id="comment" rows="3" placeholder="необязательно"></textarea>
+      </label>
+      <div class="dialog-actions">
+        <button id="dialogCancel" class="btn-secondary" type="button">Отмена</button>
+        <button id="dialogStart" class="btn-primary" type="button">Начать</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Экран истории -->
+  <div id="historyScreen" class="history-screen hidden">
+    <div class="history-header">
+      <span>История поездок</span>
+      <button id="closeHistory" class="close-btn" type="button">✕</button>
+    </div>
+    <div id="historyList" class="history-list"></div>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>

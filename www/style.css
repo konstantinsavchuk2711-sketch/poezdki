@@ -1,0 +1,285 @@
+* { box-sizing: border-box; }
+
+html, body {
+  margin: 0;
+  padding: 0;
+  height: 100%;
+  font-family: -apple-system, "Segoe UI", Roboto, sans-serif;
+  overflow: hidden;
+  background: #eef1f4;
+}
+
+#map {
+  position: absolute;
+  inset: 0;
+  bottom: 150px;
+}
+
+/* Верхняя плашка статуса */
+.status {
+  position: absolute;
+  top: calc(env(safe-area-inset-top) + 10px);
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 1000;
+  background: rgba(28, 109, 208, 0.95);
+  color: #fff;
+  padding: 8px 16px;
+  border-radius: 20px;
+  font-size: 14px;
+  max-width: 90%;
+  text-align: center;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+}
+.status.active  { background: rgba(34, 160, 90, 0.95); }
+.status.error   { background: rgba(208, 60, 60, 0.95); }
+
+/* Нижняя панель */
+.panel {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 150px;
+  padding: 12px 16px calc(env(safe-area-inset-bottom) + 12px);
+  background: #fff;
+  box-shadow: 0 -2px 12px rgba(0, 0, 0, 0.12);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  z-index: 1000;
+}
+
+.coords {
+  font-size: 13px;
+  color: #555;
+  text-align: center;
+  font-variant-numeric: tabular-nums;
+  min-height: 18px;
+}
+
+.trip-btn {
+  border: none;
+  border-radius: 14px;
+  color: #fff;
+  font-size: 18px;
+  font-weight: 600;
+  padding: 16px;
+  cursor: pointer;
+  transition: background 0.2s, transform 0.1s;
+}
+.trip-btn:active { transform: scale(0.98); }
+.trip-btn:disabled { background: #b8c0cc !important; }
+.trip-btn.start { background: #1c6dd0; }
+.trip-btn.stop  { background: #d03c3c; }
+.trip-btn.save  { background: #22a05a; }
+
+.panel-links {
+  display: flex;
+  justify-content: center;
+  gap: 18px;
+}
+.link-btn {
+  border: none;
+  background: transparent;
+  color: #1c6dd0;
+  font-size: 14px;
+  padding: 4px;
+  cursor: pointer;
+}
+.link-btn.danger { color: #d03c3c; }
+.link-btn.hidden { display: none; }
+
+/* Диалог перед поездкой */
+.dialog-overlay {
+  position: absolute;
+  inset: 0;
+  z-index: 3000;
+  background: rgba(0, 0, 0, 0.45);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+}
+.dialog-overlay.hidden { display: none; }
+
+.dialog {
+  background: #fff;
+  border-radius: 16px;
+  padding: 20px;
+  width: 100%;
+  max-width: 360px;
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.3);
+}
+.dialog-title {
+  font-size: 19px;
+  font-weight: 600;
+  margin-bottom: 16px;
+}
+.field {
+  display: block;
+  font-size: 13px;
+  color: #555;
+  margin-bottom: 12px;
+}
+.field input,
+.field textarea {
+  display: block;
+  width: 100%;
+  margin-top: 5px;
+  padding: 11px;
+  border: 1px solid #ccd2da;
+  border-radius: 10px;
+  font-size: 16px;
+  font-family: inherit;
+  box-sizing: border-box;
+}
+.field textarea { resize: vertical; }
+.field input:focus,
+.field textarea:focus {
+  outline: none;
+  border-color: #1c6dd0;
+}
+.field-error {
+  color: #d03c3c;
+  font-size: 13px;
+  margin: -6px 0 12px;
+}
+.field-error.hidden { display: none; }
+
+.dialog-actions {
+  display: flex;
+  gap: 10px;
+  margin-top: 6px;
+}
+.dialog-actions button {
+  flex: 1;
+  border: none;
+  border-radius: 10px;
+  padding: 13px;
+  font-size: 16px;
+  font-weight: 600;
+  cursor: pointer;
+}
+.btn-primary   { background: #1c6dd0; color: #fff; }
+.btn-secondary { background: #eef1f4; color: #444; }
+
+/* Экран истории */
+.history-screen {
+  position: absolute;
+  inset: 0;
+  z-index: 2000;
+  background: #f4f6f8;
+  display: flex;
+  flex-direction: column;
+}
+.history-screen.hidden { display: none; }
+
+.history-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: calc(env(safe-area-inset-top) + 14px) 16px 14px;
+  background: #1c6dd0;
+  color: #fff;
+  font-size: 18px;
+  font-weight: 600;
+}
+.close-btn {
+  border: none;
+  background: transparent;
+  color: #fff;
+  font-size: 22px;
+  cursor: pointer;
+  line-height: 1;
+}
+
+.history-list {
+  flex: 1;
+  overflow-y: auto;
+  padding: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.trip-card {
+  background: #fff;
+  border-radius: 12px;
+  padding: 14px;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.08);
+}
+.trip-card .trip-top {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+.trip-card .trip-order {
+  font-size: 15px;
+  font-weight: 600;
+  color: #1c6dd0;
+}
+.trip-card .trip-date {
+  font-size: 13px;
+  color: #888;
+}
+.trip-card .trip-comment {
+  font-size: 14px;
+  color: #333;
+  background: #f4f6f8;
+  border-radius: 8px;
+  padding: 8px 10px;
+  margin-bottom: 8px;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+.trip-card .point {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  font-size: 14px;
+  margin: 3px 0;
+  font-variant-numeric: tabular-nums;
+}
+.trip-card .dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+.dot.start { background: #22a05a; }
+.dot.stop  { background: #d03c3c; }
+.trip-card .meta {
+  margin-top: 8px;
+  font-size: 12px;
+  color: #999;
+}
+.trip-del {
+  margin-top: 10px;
+  border: none;
+  background: #f4f6f8;
+  color: #d03c3c;
+  border-radius: 8px;
+  padding: 6px 12px;
+  font-size: 13px;
+  cursor: pointer;
+}
+.empty {
+  text-align: center;
+  color: #999;
+  margin-top: 40px;
+  font-size: 15px;
+}
+
+/* Маркеры точек на карте */
+.point-marker {
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  border: 3px solid #fff;
+  box-shadow: 0 0 0 1px rgba(0,0,0,0.3);
+}
+.point-marker.start { background: #22a05a; }
+.point-marker.stop  { background: #d03c3c; }
