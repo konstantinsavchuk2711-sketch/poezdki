@@ -1,5 +1,5 @@
 /* Простой service worker: кэширует оболочку приложения для офлайн-запуска */
-const CACHE = 'trips-v3';
+const CACHE = 'trips-v4';
 const ASSETS = [
   './',
   './index.html',
@@ -10,6 +10,7 @@ const ASSETS = [
   './icon-192.png',
   './icon-512.png',
   './icon-512-maskable.png',
+  './logo-rtk.png',
 ];
 
 self.addEventListener('install', (e) => {
