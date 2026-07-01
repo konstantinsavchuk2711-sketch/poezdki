@@ -21,6 +21,11 @@
   <link rel="stylesheet" href="style.css" />
 </head>
 <body>
+  <!-- Заставка с логотипом при запуске -->
+  <div id="splash" class="splash">
+    <img src="logo-rtk.png" alt="РТК-Сервис" class="splash-logo" />
+  </div>
+
   <div id="map"></div>
 
   <!-- Верхняя плашка статуса -->
@@ -28,6 +33,7 @@
 
   <!-- Нижняя панель управления -->
   <div class="panel">
+    <img src="logo-rtk.png" alt="РТК-Сервис" class="brand" />
     <div class="coords" id="coords">—</div>
     <button id="tripBtn" class="trip-btn start" disabled>Начать поездку</button>
     <div class="panel-links">
@@ -59,6 +65,10 @@
     <div class="history-header">
       <span>История поездок</span>
       <button id="closeHistory" class="close-btn" type="button">✕</button>
+    </div>
+    <div class="history-tools">
+      <input id="historySearch" class="history-search" type="search" inputmode="numeric" placeholder="Поиск по номеру наряда" />
+      <button id="exportBtn" class="export-btn" type="button">Экспорт CSV</button>
     </div>
     <div id="historyList" class="history-list"></div>
   </div>

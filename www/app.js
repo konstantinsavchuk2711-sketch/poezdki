@@ -72,6 +72,11 @@ const els = {
   comment: document.getElementById('comment'),
   dialogStart: document.getElementById('dialogStart'),
   dialogCancel: document.getElementById('dialogCancel'),
+  // История: поиск и экспорт
+  historySearch: document.getElementById('historySearch'),
+  exportBtn: document.getElementById('exportBtn'),
+  // Заставка
+  splash: document.getElementById('splash'),
 };
 
 /* ============================================================
@@ -79,20 +84,35 @@ const els = {
    ============================================================ */
 let map, meMarker, accuracyCircle;
 let startMarker = null, stopMarker = null;
+let routeLine = null;           // линия маршрута между стартом и финишем
 let lastPosition = null;        // последняя известная точка {lat, lng, accuracy}
 let tripMeta = null;            // {orderNumber, comment, startTime} текущей поездки
 let state = 'idle';             // 'idle' | 'active' | 'review'
 let hasCentered = false;
+let allTrips = [];              // кэш поездок для фильтрации в истории
 
 /* ============================================================
    Карта
    ============================================================ */
 function initMap() {
   map = L.map('map', { zoomControl: true }).setView([55.751244, 37.618423], 13); // Москва по умолчанию
-  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-    maxZoom: 19,
-    attribution: '© OpenStreetMap',
+  // Подложка CARTO Voyager — светлая, чёткая, работает в РФ без ключа
+  L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
+    maxZoom: 20,
+    subdomains: 'abcd',
+    attribution: '© OpenStreetMap, © CARTO',
   }).addTo(map);
+}
+
+// Линия маршрута между точками старта и финиша
+function drawRouteLine() {
+  if (!startMarker || !stopMarker) return;
+  const pts = [startMarker.getLatLng(), stopMarker.getLatLng()];
+  if (routeLine) {
+    routeLine.setLatLngs(pts);
+  } else {
+    routeLine = L.polyline(pts, { color: '#1c6dd0', weight: 4, opacity: 0.85, dashArray: '6 8' }).addTo(map);
+  }
 }
 
 function pointIcon(kind) {
@@ -112,6 +132,7 @@ function addDraggableMarker(latlng, kind, label) {
     autoPan: true,
   }).addTo(map);
   marker.bindTooltip(label + ' (можно перетащить)', { direction: 'top', offset: [0, -10] });
+  marker.on('drag', drawRouteLine); // при перетаскивании обновляем линию маршрута
   return marker;
 }
 
@@ -239,6 +260,7 @@ function beginTrip(meta) {
 
 function enterReview() {
   stopMarker = addDraggableMarker([lastPosition.lat, lastPosition.lng], 'stop', 'Финиш');
+  drawRouteLine();
 
   state = 'review';
   els.tripBtn.textContent = 'Сохранить поездку';
@@ -290,21 +312,31 @@ function resetTrip() {
 function clearTripMarkers() {
   if (startMarker) { map.removeLayer(startMarker); startMarker = null; }
   if (stopMarker)  { map.removeLayer(stopMarker);  stopMarker = null; }
+  if (routeLine)   { map.removeLayer(routeLine);   routeLine = null; }
 }
 
 /* ============================================================
    История
    ============================================================ */
 async function openHistory() {
-  const trips = await DB.all();
-  trips.sort((a, b) => b.startTime - a.startTime);
-  renderHistory(trips);
+  allTrips = await DB.all();
+  allTrips.sort((a, b) => b.startTime - a.startTime);
+  applyHistoryFilter();
   els.historyScreen.classList.remove('hidden');
 }
 
-function renderHistory(trips) {
+// Фильтр истории по номеру наряда
+function applyHistoryFilter() {
+  const q = els.historySearch.value.trim().toLowerCase();
+  const list = q
+    ? allTrips.filter((t) => String(t.orderNumber ?? '').toLowerCase().includes(q))
+    : allTrips;
+  renderHistory(list, q ? 'Ничего не найдено' : 'Поездок пока нет');
+}
+
+function renderHistory(trips, emptyText) {
   if (!trips.length) {
-    els.historyList.innerHTML = '<div class="empty">Поездок пока нет</div>';
+    els.historyList.innerHTML = `<div class="empty">${emptyText || 'Поездок пока нет'}</div>`;
     return;
   }
   els.historyList.innerHTML = trips.map((t) => {
@@ -357,6 +389,61 @@ function escapeHtml(s) {
 }
 
 /* ============================================================
+   Экспорт истории в CSV
+   ============================================================ */
+function tripsToCsv(trips) {
+  const header = [
+    'id', 'Наряд', 'Комментарий',
+    'Старт_широта', 'Старт_долгота', 'Старт_время',
+    'Финиш_широта', 'Финиш_долгота', 'Финиш_время',
+    'Расстояние_км',
+  ];
+  const rows = trips.map((t) => [
+    t.id, t.orderNumber ?? '', (t.comment ?? '').replace(/\r?\n/g, ' '),
+    t.startLat, t.startLng, formatDate(t.startTime),
+    t.endLat, t.endLng, formatDate(t.endTime),
+    distanceKm(t),
+  ]);
+  const esc = (v) => {
+    const s = String(v);
+    return /[";\n]/.test(s) ? '"' + s.replace(/"/g, '""') + '"' : s;
+  };
+  return [header, ...rows].map((r) => r.map(esc).join(';')).join('\r\n');
+}
+
+async function exportCsv() {
+  const trips = await DB.all();
+  if (!trips.length) { setStatus('Нет поездок для экспорта', 'error'); return; }
+  trips.sort((a, b) => a.startTime - b.startTime);
+  const csv = '﻿' + tripsToCsv(trips); // BOM — чтобы Excel корректно открыл кириллицу
+  const fname = 'poezdki.csv';
+
+  const cap = window.Capacitor;
+  const native = cap && cap.isNativePlatform && cap.isNativePlatform();
+  if (native && cap.Plugins && cap.Plugins.Filesystem) {
+    try {
+      const Fs = cap.Plugins.Filesystem;
+      const Share = cap.Plugins.Share;
+      const res = await Fs.writeFile({ path: fname, data: csv, directory: 'CACHE', encoding: 'utf8' });
+      if (Share && Share.share) {
+        await Share.share({ title: 'Поездки', text: 'Выгрузка поездок (CSV)', files: [res.uri] });
+      } else {
+        setStatus('Файл сохранён: ' + res.uri, 'active');
+      }
+    } catch (e) {
+      setStatus('Ошибка экспорта: ' + (e.message || e), 'error');
+    }
+  } else {
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url; a.download = fname;
+    document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
+  }
+}
+
+/* ============================================================
    Инициализация
    ============================================================ */
 els.tripBtn.addEventListener('click', onTripButton);
@@ -365,9 +452,14 @@ els.historyBtn.addEventListener('click', openHistory);
 els.closeHistory.addEventListener('click', () => els.historyScreen.classList.add('hidden'));
 els.dialogStart.addEventListener('click', confirmDialog);
 els.dialogCancel.addEventListener('click', closeDialog);
+els.exportBtn.addEventListener('click', exportCsv);
+els.historySearch.addEventListener('input', applyHistoryFilter);
 
 initMap();
 startGeolocation();
+
+// Прячем заставку с логотипом после запуска
+setTimeout(() => { if (els.splash) els.splash.classList.add('hidden'); }, 1500);
 
 if ('serviceWorker' in navigator) {
   navigator.serviceWorker.register('sw.js').catch(() => {});
