@@ -96,6 +96,7 @@ let allTrips = [];              // кэш поездок для фильтрац
    ============================================================ */
 function initMap() {
   map = L.map('map', { zoomControl: true }).setView([55.751244, 37.618423], 13); // Москва по умолчанию
+  map.attributionControl.setPrefix(false); // убрать стандартный префикс Leaflet (с флажком)
   // Подложка CARTO Voyager — светлая, чёткая, работает в РФ без ключа
   L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
     maxZoom: 20,

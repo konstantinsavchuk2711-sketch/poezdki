@@ -1,5 +1,5 @@
 /* Простой service worker: кэширует оболочку приложения для офлайн-запуска */
-const CACHE = 'trips-v4';
+const CACHE = 'trips-v5';
 const ASSETS = [
   './',
   './index.html',
